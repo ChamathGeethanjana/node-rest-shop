@@ -1,4 +1,30 @@
 const express = require('express');
 const router = express.Router();
 
-router.get('/') 
+router.get('/', (req, res, next) => {
+    res.status(200).json({
+        meessage: 'Handling GET request to /products'
+    })
+}) 
+
+router.post('/', (req, res, next) => {
+    res.status(201).json({
+        meessage: 'Handling POST request to /products'
+    })
+}) 
+
+router.get('/:productId', (req, res, next) => {
+    const id = req.params.productId;
+    if (id == 'special') {
+        res.status(200).json({
+            message: 'You discovered the special ID',
+            id: id
+        })
+    }else{
+        res.status(200).json({
+            message: 'You passed an ID'
+        })
+    }
+})
+
+module.exports = router;
