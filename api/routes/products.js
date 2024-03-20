@@ -2,36 +2,50 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 const multer = require("multer");
-const path = require("path");
-
-// const filePath = path.join(__dirname, "uploads", `${Date.now()}-airPods.jpeg`);
-// console.log("Attempting to access file:", filePath);
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "./uploads/");
+    // cb(null, path.join(__dirname, "uploads"));
   },
   filename: function (req, file, cb) {
-    // cb(null, new Date().toISOString() + file.originalname);
+    // there can not use toISOString() method to get UTC timezone
+    //it cause an error, instead of that have used toLocaleDateString() method
     cb(
       null,
-      path.join(
-        __dirname,
-        "uploads",
-        new Date().toISOString() + file.originalname
-      )
+      new Date().toLocaleDateString().replace(/\//g, "-") +
+        "-" +
+        file.originalname
     );
   },
 });
 
-const upload = multer({ storage: storage });
+const fileFilter = (req, file, cb) => {
+  //reject a file
+  if (
+    file.mimetype == "image/jpeg" ||
+    file.mimetype == "image/jpg" ||
+    file.mimetype == "image/png"
+  ) {
+    cb(null, true);
+  } else {
+    cb(null, false);
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 1024 * 1024 * 5,
+  },
+  fileFilter: fileFilter,
+});
 
 const Product = require("../models/product");
-const product = require("../models/product");
 
 router.get("/", (req, res, next) => {
   Product.find()
-    .select("name price _id")
+    .select("name price _id productImage")
     .exec()
     .then((docs) => {
       const response = {
@@ -40,6 +54,7 @@ router.get("/", (req, res, next) => {
           return {
             name: doc.name,
             price: doc.price,
+            productImage: doc.productImage,
             _id: doc._id,
             request: {
               type: "GET",
@@ -70,6 +85,7 @@ router.post("/", upload.single("productImage"), (req, res, next) => {
     _id: new mongoose.Types.ObjectId(),
     name: req.body.name,
     price: req.body.price,
+    productImage: req.file.path,
   });
   product
     .save()
@@ -99,7 +115,7 @@ router.post("/", upload.single("productImage"), (req, res, next) => {
 router.get("/:productId", (req, res, next) => {
   const id = req.params.productId;
   Product.findById(id)
-    .select("name price _id")
+    .select("name price _id productImage")
     .exec()
     .then((doc) => {
       console.log("From database", doc);
